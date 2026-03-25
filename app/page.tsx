@@ -94,7 +94,12 @@ const MODES: Array<{ label: string; value: SessionMode }> = [
 const DOMAINS = ["news_and_media", "education", "personal_development"];
 const MAX_RECORD_SECONDS = 47;
 const CHAT_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"];
-const STT_MODELS = ["whisper-large-v3-turbo", "whisper-large-v3"];
+const STT_MODELS: Array<{ label: string; value: string }> = [
+  { label: "Auto (sesuai AI provider)", value: "" },
+  { label: "OpenAI Whisper (whisper-1)", value: "whisper-1" },
+  { label: "Groq Whisper Large v3 Turbo", value: "whisper-large-v3-turbo" },
+  { label: "Groq Whisper Large v3", value: "whisper-large-v3" },
+];
 const COACH_NAME = "LexiSpeak Coach";
 const COACH_ROLE = "LexiSpeak Debate Partner";
 const TARGET_QA_ACTIVITIES = 10;
@@ -151,7 +156,7 @@ export default function Home() {
   const [customTopic, setCustomTopic] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
   const [chatModel, setChatModel] = useState<string>(CHAT_MODELS[0]);
-  const [sttModel, setSttModel] = useState<string>(STT_MODELS[0]);
+  const [sttModel, setSttModel] = useState<string>(STT_MODELS[0].value);
   const [isStarting, setIsStarting] = useState<boolean>(false);
   const [isScoring, setIsScoring] = useState<boolean>(false);
   const [isTranscribing, setIsTranscribing] = useState<boolean>(false);
@@ -605,7 +610,9 @@ export default function Home() {
       const formData = new FormData();
       formData.set("audio", sourceBlob, uploadedAudioFile?.name || "recording.webm");
       formData.set("language", "en");
-      formData.set("model", sttModel);
+      if (sttModel.trim()) {
+        formData.set("model", sttModel);
+      }
       const durationSeconds = await getAudioDurationSeconds(sourceBlob);
       formData.set("durationSeconds", String(durationSeconds));
 
@@ -1032,8 +1039,8 @@ export default function Home() {
         <label className="field-label" htmlFor="sttModel">Transcribe model</label>
         <select id="sttModel" className="input" value={sttModel} onChange={(e) => setSttModel(e.target.value)}>
           {STT_MODELS.map((model) => (
-            <option key={model} value={model}>
-              {model}
+            <option key={model.value || "auto"} value={model.value}>
+              {model.label}
             </option>
           ))}
         </select>
