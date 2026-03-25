@@ -1,36 +1,125 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LexiSpeak
 
-## Getting Started
+Versi website dari project LexiSpeak, dibangun dengan Next.js App Router dan siap deploy ke Vercel.
 
-First, run the development server:
+## Fitur Starter
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Mode soal:
+  - Generate by AI (OpenAI/Groq via environment variable)
+  - Generate lokal by domain (tanpa topik utama)
+  - Enter by topic
+- Session flow:
+  - Generate 10 pertanyaan
+  - Rekam suara langsung dari browser
+  - Transcribe audio ke teks via endpoint server
+  - Jawab satu per satu
+  - Hitung skor akhir dan mapping CEFR
+- Progress per user:
+  - Simpan hasil sesi ke Supabase
+  - Simpan transcript per pertanyaan (Q/A)
+  - Tampilkan riwayat Band score terbaru
+  - Tampilkan trend band mingguan
+- API serverless:
+  - `POST /api/questions`
+  - `POST /api/transcribe`
+  - `POST /api/evaluate`
+  - `GET /api/history?userId=...`
+  - `POST /api/history`
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Konfigurasi Environment
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Copy file env contoh:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+  `Copy-Item .env.example .env.local`
 
-## Learn More
+2. Isi value sesuai provider yang dipakai.
 
-To learn more about Next.js, take a look at the following resources:
+Minimal untuk OpenAI:
+- `AI_PROVIDER=openai`
+- `OPENAI_API_KEY=...`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Minimal untuk Groq:
+- `AI_PROVIDER=groq`
+- `GROQ_API_KEY=...`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Untuk simpan riwayat progress:
+- `SUPABASE_URL=...`
+- `SUPABASE_SERVICE_ROLE_KEY=...`
 
-## Deploy on Vercel
+Di Vercel, isi semua variabel tadi di Project Settings > Environment Variables.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Setup Supabase
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Buka SQL Editor di Supabase.
+2. Jalankan isi file [supabase/schema.sql](supabase/schema.sql).
+3. Pastikan tabel `speaking_sessions` berhasil dibuat.
+4. Kalau tabel sudah lama, jalankan ulang file yang sama untuk menambah kolom `qa_transcripts`.
+
+## Run Lokal
+
+1. Masuk folder project:
+
+	`cd ielts-web`
+
+2. Jalankan development server:
+
+	`npm run dev`
+
+3. Buka browser:
+
+	`http://localhost:3000`
+
+## Build Check
+
+Untuk memastikan siap deploy:
+
+`npm run build`
+
+## Deploy ke Vercel
+
+1. Login Vercel CLI:
+
+	`npx vercel login`
+
+2. Deploy project:
+
+	`npx vercel`
+
+3. Untuk production deploy:
+
+	`npx vercel --prod`
+
+## Deploy Aman (Direkomendasikan)
+
+- Jangan simpan API key di code, commit, atau client-side code.
+- Simpan semua secret hanya di Vercel Environment Variables.
+- Aktifkan 2FA di akun Vercel, GitHub, dan Supabase.
+- Rotasi API key secara berkala.
+- Gunakan domain production sendiri dan pakai HTTPS (default di Vercel).
+- Monitor log request 429/403 untuk deteksi abuse.
+
+### Environment Variables yang wajib untuk AI
+
+Tanpa env AI, fitur generate AI/transcribe tidak akan berjalan.
+
+- `AI_PROVIDER` = `openai` atau `groq`
+- Jika OpenAI:
+  - `OPENAI_API_KEY`
+  - `OPENAI_BASE_URL` (opsional, default sudah ada)
+  - `OPENAI_CHAT_MODEL` (opsional)
+  - `OPENAI_TRANSCRIBE_MODEL` (opsional)
+- Jika Groq:
+  - `GROQ_API_KEY`
+  - `GROQ_BASE_URL` (opsional, default sudah ada)
+  - `GROQ_CHAT_MODEL` (opsional)
+  - `GROQ_TRANSCRIBE_MODEL` (opsional)
+
+Untuk history/progress storage:
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+## Upgrade Berikutnya (Direkomendasikan)
+
+- Tambah autentikasi Supabase Auth (login user real, bukan userId manual).
+- Simpan transcript per pertanyaan (bukan hanya hasil akhir session).
+- Tambah analitik progress mingguan dengan chart (misalnya average band trend).
