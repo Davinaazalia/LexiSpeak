@@ -56,6 +56,24 @@ function resolveTranscriptionModel(provider: AiProvider): string {
   return env("OPENAI_TRANSCRIBE_MODEL") || "whisper-1";
 }
 
+function resolveRequestedTranscriptionModel(provider: AiProvider, requestedModel?: string): string {
+  const requested = (requestedModel || "").trim();
+  const fallback = resolveTranscriptionModel(provider);
+
+  if (!requested) {
+    return fallback;
+  }
+
+  const openaiAllowed = new Set(["whisper-1", "gpt-4o-mini-transcribe", "gpt-4o-transcribe"]);
+  const groqAllowed = new Set(["whisper-large-v3-turbo", "whisper-large-v3"]);
+
+  if (provider === "openai") {
+    return openaiAllowed.has(requested) ? requested : fallback;
+  }
+
+  return groqAllowed.has(requested) ? requested : fallback;
+}
+
 export async function generateQuestionsWithAi(input: {
   anchorTopic: string;
   domainLabel: string;
@@ -134,7 +152,7 @@ export async function transcribeAudioWithAi(input: {
   const provider = resolveAiProvider();
   const apiKey = resolveApiKey(provider);
   const baseUrl = resolveApiBase(provider);
-  const model = input.modelName?.trim() || resolveTranscriptionModel(provider);
+  const model = resolveRequestedTranscriptionModel(provider, input.modelName);
 
   const formData = new FormData();
   const blob = new Blob([input.fileBuffer], { type: input.mimeType || "audio/webm" });
