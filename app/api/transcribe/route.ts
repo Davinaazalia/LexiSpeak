@@ -4,6 +4,31 @@ import { enforceRateLimit, isAllowedOrigin } from "@/lib/security";
 
 export const runtime = "nodejs";
 
+function toUserSafeTranscribeError(raw: string): string {
+  const message = String(raw || "");
+
+  if (/OPENAI_API_KEY belum diisi/i.test(message)) {
+    return "OPENAI_API_KEY belum diisi di Vercel Environment Variables.";
+  }
+  if (/GROQ_API_KEY belum diisi/i.test(message)) {
+    return "GROQ_API_KEY belum diisi di Vercel Environment Variables.";
+  }
+  if (/\(401\)|unauthorized|invalid[_\s-]?api[_\s-]?key/i.test(message)) {
+    return "API key AI tidak valid atau sudah expired (401).";
+  }
+  if (/\(429\)|rate limit|quota|insufficient_quota/i.test(message)) {
+    return "Kuota/rate limit AI provider tercapai (429).";
+  }
+  if (/\(400\)|model|not found|unsupported/i.test(message)) {
+    return "Model transcribe tidak didukung oleh provider yang aktif.";
+  }
+  if (/\(5\d\d\)/i.test(message)) {
+    return "Server AI provider sedang bermasalah, coba lagi beberapa menit.";
+  }
+
+  return "Transcribe gagal. Cek konfigurasi AI provider di Vercel.";
+}
+
 function polishTranscript(raw: string): string {
   const cleaned = (raw || "").replace(/\s+/g, " ").trim();
   if (!cleaned) return "";
@@ -143,9 +168,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown transcription error";
-    if (/API_KEY|OPENAI|GROQ|Transcription gagal/i.test(message)) {
-      return NextResponse.json({ message: "Transcribe gagal, cek konfigurasi AI provider." }, { status: 500 });
-    }
-    return NextResponse.json({ message: "Transcribe gagal" }, { status: 500 });
+    return NextResponse.json({ message: toUserSafeTranscribeError(message) }, { status: 500 });
   }
 }
