@@ -149,6 +149,13 @@ function hasCompleteScoreDetail(value: unknown): value is EvaluateResult["detail
   });
 }
 
+function extractPolishedTranscript(block: string): string {
+  const text = String(block || "");
+  const match = text.match(/Polished Transcript:\n([\s\S]*?)\n\nMetrics:/);
+  const candidate = match?.[1]?.trim() || "";
+  return candidate;
+}
+
 export default function Home() {
   const [mode, setMode] = useState<SessionMode>("local_domain");
   const [domain, setDomain] = useState<string>(DOMAINS[0]);
@@ -654,8 +661,9 @@ export default function Home() {
           transcript: `-----Transcripts-----\nActual Audio Transcript (what native speakers are likely to hear):\n${confidenceLine || rawTranscript}\n\nPolished Transcript:\n${polishedTranscript}\n\nMetrics: duration=${transcriptMetrics?.durationSeconds ?? "-"}s | words=${transcriptMetrics?.wordCount ?? "-"} | WPM=${transcriptMetrics?.wpm ?? "-"}`,
         },
       ]);
+      const fallbackTranscript = polishedTranscript || rawTranscript || "";
       setDraftAnswer((prev) => {
-        const merged = [prev.trim(), polishedTranscript].filter(Boolean).join("\n\n");
+        const merged = [prev.trim(), fallbackTranscript].filter(Boolean).join("\n\n");
         return merged;
       });
     } catch (err) {
@@ -780,7 +788,22 @@ export default function Home() {
 
   const nextOrFinish = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const cleaned = draftAnswer.trim();
+    let cleaned = draftAnswer.trim();
+
+    if (!cleaned) {
+      const latestTranscriptBlock = [...qaRecords]
+        .reverse()
+        .find((row) => String(row.question || "").trim() === TRANSCRIPT_ENTRY_KEY);
+      const transcriptFallback = latestTranscriptBlock
+        ? extractPolishedTranscript(String(latestTranscriptBlock.transcript || ""))
+        : "";
+
+      if (transcriptFallback) {
+        cleaned = transcriptFallback;
+        setDraftAnswer(transcriptFallback);
+      }
+    }
+
     if (!cleaned) {
       setError("Jawaban masih kosong.");
       return;
