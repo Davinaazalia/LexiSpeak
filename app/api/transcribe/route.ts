@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const audio = formData.get("audio");
-    const language = String(formData.get("language") || "en");
+    const language = String(formData.get("language") || "").trim();
     const model = String(formData.get("model") || "").trim();
     const durationSeconds = Number(formData.get("durationSeconds") || 0);
 

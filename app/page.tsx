@@ -616,7 +616,7 @@ export default function Home() {
     try {
       const formData = new FormData();
       formData.set("audio", sourceBlob, uploadedAudioFile?.name || "recording.webm");
-      formData.set("language", "en");
+      // Let the provider auto-detect language for better recognition quality.
       if (sttModel.trim()) {
         formData.set("model", sttModel);
       }
