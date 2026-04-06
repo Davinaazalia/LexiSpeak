@@ -473,41 +473,6 @@ export default function Home() {
     loadLearningProfile(userId);
   }, [userId]);
 
-  useEffect(() => {
-    const saveResultToHistory = async () => {
-      if (!result || sessionSaved || !userId.trim()) {
-        return;
-      }
-
-      try {
-        await fetch("/api/history", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId,
-            mode,
-            domain,
-            topicLabel,
-            chatModel: activeModel || chatModel,
-            bandScore: result.bandScore,
-            cefr: result.cefr,
-            answersCount: answers.length,
-            detail: result.detail,
-            notes: result.notes,
-            qaTranscripts: qaRecords,
-          }),
-        });
-        setSessionSaved(true);
-        loadHistory(userId);
-        loadLearningProfile(userId);
-      } catch {
-        // Non-blocking: app can still show results without history persistence.
-      }
-    };
-
-    saveResultToHistory();
-  }, [result, sessionSaved, userId, mode, domain, topicLabel, answers, qaRecords, activeModel, chatModel]);
-
   const getAudioDurationSeconds = (blob: Blob): Promise<number> =>
     new Promise((resolve, reject) => {
       const url = URL.createObjectURL(blob);
@@ -701,6 +666,32 @@ export default function Home() {
         "assistant",
         `Final after ${TARGET_QA_ACTIVITIES} activities: Band ${data.bandScore.toFixed(1)} (${data.cefr})`
       );
+
+      // Save to history after evaluation
+      try {
+        await fetch("/api/history", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId,
+            mode,
+            domain,
+            topicLabel,
+            chatModel: activeModel || chatModel,
+            bandScore: data.bandScore,
+            cefr: data.cefr,
+            answersCount: answers.length,
+            detail: data.detail,
+            notes: data.notes,
+            qaTranscripts: qaRecords,
+          }),
+        });
+        setSessionSaved(true);
+        loadHistory(userId);
+        loadLearningProfile(userId);
+      } catch {
+        // Non-blocking: app can still show results without history persistence.
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal menghitung skor.");
     } finally {
